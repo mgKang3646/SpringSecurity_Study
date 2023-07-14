@@ -1,11 +1,13 @@
 package io.security.basicsecurity;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
@@ -16,11 +18,16 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import java.awt.color.ICC_ColorSpace;
 import java.io.IOException;
 
 @Configuration
 @EnableWebSecurity //Security에 필요한 여러 클래스를 함께 실행시켜주는 어노테이션
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
+
+    @Autowired
+    UserDetailsService userDetailsService;
+
     @Override
     protected void configure(HttpSecurity http) throws Exception {
 
@@ -72,7 +79,19 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                         response.sendRedirect("/login");
                     }
                 })
-                .deleteCookies("remember-me");
+
+                // 인증에 성공했다는 말은 세션이 인증객체를 담고 있다는 말임
+                // 클라이언트는 세션ID를 돌려받음, 로그인이 없어도 세션ID로 접근이 가능해짐.
+                // 세션ID가 없으면 로그인이 불가능한데, REMEMBER-ME 쿠키가 request-head에 있다면 이를 파싱하여, 다시 인증을 시도한다.
+                // 세션ID가 사라져도 로그인이 가능해진다.
+        .and()
+                .rememberMe()
+                .rememberMeParameter("remember")
+                .tokenValiditySeconds(3600)
+                .userDetailsService(userDetailsService);
+
+
+
     }
 
 }
